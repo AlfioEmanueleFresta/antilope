@@ -5,6 +5,9 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.os.ParcelUuid;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -65,12 +68,12 @@ public class Fido2Service extends GattService {
                 BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_READ_ENCRYPTED);
         // TODO fidoServiceRevision read
 
-        mFidoStatusDescriptor = new BluetoothGattDescriptor(FIDO_STATUS_DESCRIPTOR_UUID,
-                BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED_MITM | BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED_MITM);
+        //mFidoStatusDescriptor = new BluetoothGattDescriptor(FIDO_STATUS_DESCRIPTOR_UUID,
+        //        BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED_MITM | BluetoothGattDescriptor.PERMISSION_WRITE_ENCRYPTED_MITM);
+        //mFidoStatus.addDescriptor(mFidoStatusDescriptor);
 
         mFidoService = new BluetoothGattService(FIDO_SERVICE_UUID,
                 BluetoothGattService.SERVICE_TYPE_PRIMARY);
-        mFidoStatus.addDescriptor(mFidoStatusDescriptor);
 
         mFidoService.addCharacteristic(mFidoControlPoint);
         mFidoService.addCharacteristic(mFidoStatus);
@@ -78,5 +81,6 @@ public class Fido2Service extends GattService {
         mFidoService.addCharacteristic(mFidoServiceRevisionBitfield);
         mFidoService.addCharacteristic(mFidoServiceRevision);
     }
+
 
 }

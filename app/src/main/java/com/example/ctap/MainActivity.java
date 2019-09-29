@@ -23,7 +23,6 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -59,15 +58,15 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
 
         @Override
         public void onStartFailure(int errorCode) {
-            super.onStartFailure(errorCode);
             Log.e(TAG, "Unable to start advertising: " + errorCode);
+            super.onStartFailure(errorCode);
             // TODO handle error code
         }
 
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
-            super.onStartSuccess(settingsInEffect);
             Log.i(TAG, "Started advertising BLE services");
+            super.onStartSuccess(settingsInEffect);
 
         }
     };
@@ -79,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
 
         @Override
         public void onConnectionStateChange(BluetoothDevice device, final int status, int newState) {
+            Log.i(TAG, "onConnectionStateChange, device=" + device.getAddress() + ", status=" + status + ", newState=" + newState);
             super.onConnectionStateChange(device, status, newState);
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 if (newState == BluetoothGatt.STATE_CONNECTED) {
@@ -108,10 +108,10 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
         @Override
         public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset,
                                                 BluetoothGattCharacteristic characteristic) {
-            super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
-
+            Log.d(TAG, "onCharacteristicReadRequest - requestId=" + requestId + ", device=" + device.getAddress() + " (" + device.getName() + ")");
             Log.d(TAG, "Device tried to read characteristic: " + characteristic.getUuid());
             Log.d(TAG, "Value: " + Arrays.toString(characteristic.getValue()));
+            super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
 
             if (offset != 0) {
                 mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_INVALID_OFFSET,
@@ -140,8 +140,8 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
 
         @Override
         public void onNotificationSent(BluetoothDevice device, int status) {
-            super.onNotificationSent(device, status);
             Log.v(TAG, "Notification sent, status: " + status);
+            super.onNotificationSent(device, status);
         }
 
         @Override
@@ -149,10 +149,10 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
                                                  BluetoothGattCharacteristic characteristic,
                                                  boolean preparedWrite, boolean responseNeeded,
                                                  int offset, byte[] value) {
+            Log.v(TAG, "Characteristic Write Request: " + Arrays.toString(value));
             super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite,
                     responseNeeded, offset, value);
 
-            Log.v(TAG, "Characteristic Write Request: " + Arrays.toString(value));
 
             //final int status = writeCharacteristic(characteristic, offset, value);
             final int status = mFido2Service.writeCharacteristic(characteristic, offset, value);
@@ -164,11 +164,13 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
         @Override
         public void onDescriptorReadRequest(BluetoothDevice device, int requestId,
                                             int offset, BluetoothGattDescriptor descriptor) {
-            super.onDescriptorReadRequest(device, requestId, offset, descriptor);
+            Log.d(TAG, "onDescriptorReadRequest - requestId=" + requestId + ", device=" + device.getAddress() + " (" + device.getName() + ")");
             Log.d(TAG, "Device tried to read descriptor: " + descriptor.getUuid());
             Log.d(TAG, "Value: " + Arrays.toString(descriptor.getValue()));
+            super.onDescriptorReadRequest(device, requestId, offset, descriptor);
 
             if (offset != 0) {
+                Log.e(TAG, "Reqested non-zero offset: " + offset);
                 mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_INVALID_OFFSET,
                         offset, null);
                 return;
@@ -245,6 +247,8 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
         GattService service = mServicesToAdd.poll();
         if (service != null) {
             mGattServer.addService(service.getBluetoothGattService());
+        } else {
+            startAdvertising();
         }
     }
 
@@ -264,8 +268,8 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
         mBluetoothAdapter = mBluetoothManager.getAdapter();
 
         mAdvSettings = new AdvertiseSettings.Builder()
-                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_POWER)
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_LOW)
+                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
+                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
                 .setConnectable(true)
                 .setTimeout(30000)
                 .build();
@@ -304,9 +308,11 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
         // Add services (Generic Attribute & Generic Access services are present by default)
         mServicesToAdd = new ArrayDeque<>();
         mServicesToAdd.add(mFido2Service);
-        mServicesToAdd.add(mFido2Service);
+        mServicesToAdd.add(mDeviceInformationService);
         addNextService();
+    }
 
+    private void startAdvertising() {
         if (mBluetoothAdapter.isMultipleAdvertisementSupported()) {
             Log.i(TAG, "Preparing to advertise");
             mAdvertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
@@ -320,6 +326,14 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
         for (BluetoothGattService service: mGattServer.getServices()) {
             Log.i(TAG, " * " + service.getUuid());
         }
+
+        Log.i(TAG, "Adapter - isEnabled=" + mBluetoothAdapter.isEnabled());
+        Log.i(TAG, "Adapter - scanMode=" + mBluetoothAdapter.getScanMode());
+
+        if (mBluetoothAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+            Log.e(TAG, "!! ADAPTER IS IN UNEXPECTED NIDE !! scanMode=" + mBluetoothAdapter.getScanMode());
+        }
+
     }
 
     @Override

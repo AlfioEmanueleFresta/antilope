@@ -5,6 +5,8 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.os.ParcelUuid;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 
