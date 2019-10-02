@@ -58,15 +58,4 @@ public abstract class GattService {
         void sendNotificationToDevices(BluetoothGattCharacteristic characteristic);
     }
 
-    protected static BluetoothGattDescriptor buildStringDescriptor(UUID uuid, String value) {
-        return buildBytesDescriptor(uuid, value.getBytes());
-    }
-
-    protected static BluetoothGattDescriptor buildBytesDescriptor(UUID uuid, byte[] value) {
-        BluetoothGattDescriptor descriptor = new BluetoothGattDescriptor(
-                uuid, BluetoothGattDescriptor.PERMISSION_READ);
-        descriptor.setValue(value);
-        return descriptor;
-
-    }
 }

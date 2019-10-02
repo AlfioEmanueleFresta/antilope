@@ -22,6 +22,8 @@ import android.util.Log;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import com.example.ctap.fido.Authenticator;
+
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -38,6 +40,7 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
     private static final String TAG = MainActivity.class.getCanonicalName();
     private static final int REQUEST_ENABLE_BT = 1;
 
+    private Authenticator mAuthenticator;
     private GattService mFido2Service;
     private GattService mDeviceInformationService;
     private Queue<GattService> mServicesToAdd;
@@ -65,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
 
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
-            Log.i(TAG, "Started advertising BLE services");
+            Log.i(TAG, "Started advertising BLE services. Settings: " + settingsInEffect);
             super.onStartSuccess(settingsInEffect);
 
         }
@@ -103,6 +106,12 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
 
             }
 
+        }
+
+        @Override
+        public void onMtuChanged(BluetoothDevice device, int mtu) {
+            super.onMtuChanged(device, mtu);
+            Log.d(TAG, "onMtuChanged device=" + device.getAddress() + ", mtu=" + mtu);
         }
 
         @Override
@@ -246,9 +255,15 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
     private void addNextService() {
         GattService service = mServicesToAdd.poll();
         if (service != null) {
+            Log.d(TAG, "addNextService(): Requesting addition of next service...");
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             mGattServer.addService(service.getBluetoothGattService());
         } else {
-            startAdvertising();
+            Log.d(TAG, "addNextService(): This was the last service, now starting advertising");
         }
     }
 
@@ -260,7 +275,9 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
         // Keep the display on.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        mFido2Service = new Fido2Service();
+        mAuthenticator = new Authenticator(this);
+
+        mFido2Service = new Fido2Service(this, mAuthenticator);
         mDeviceInformationService = new DeviceInformationService();
 
         mBluetoothDevices = new HashSet<>();
@@ -268,27 +285,21 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
         mBluetoothAdapter = mBluetoothManager.getAdapter();
 
         mAdvSettings = new AdvertiseSettings.Builder()
-                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
+                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
                 .setConnectable(true)
-                .setTimeout(30000)
+                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
                 .build();
 
         mAdvData = new AdvertiseData.Builder()
                 .setIncludeDeviceName(true)
-                .setIncludeTxPowerLevel(true)
                 .addServiceUuid(mFido2Service.getServiceUUID())
+                /*
+                 * Some magic (https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-client-to-authenticator-protocol-v2.0-id-20180227.html#ble-pairing-authnr-considerations)
+                 * required because the Android BLE API does not allow setting the required advertising flags (LE Limited Mode or LE General Discoverable bits).
+                 */
+                .addServiceData(mFido2Service.getServiceUUID(), new byte[] {(byte) 192, (byte) 192, (byte) 192})
                 .addServiceUuid(mDeviceInformationService.getServiceUUID())
                 .build();
-
-        mAdvScanResponse = new AdvertiseData.Builder()
-                .setIncludeDeviceName(true)
-                .setIncludeTxPowerLevel(true)
-                .addServiceUuid(mFido2Service.getServiceUUID())
-                .addServiceUuid(mDeviceInformationService.getServiceUUID())
-                .build();
-
-
     }
 
     @Override
@@ -307,16 +318,18 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
 
         // Add services (Generic Attribute & Generic Access services are present by default)
         mServicesToAdd = new ArrayDeque<>();
-        mServicesToAdd.add(mFido2Service);
         mServicesToAdd.add(mDeviceInformationService);
+        mServicesToAdd.add(mFido2Service);
         addNextService();
+
+        startAdvertising();
     }
 
     private void startAdvertising() {
         if (mBluetoothAdapter.isMultipleAdvertisementSupported()) {
             Log.i(TAG, "Preparing to advertise");
             mAdvertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
-            mAdvertiser.startAdvertising(mAdvSettings, mAdvData, mAdvScanResponse, mAdvCallback);
+            mAdvertiser.startAdvertising(mAdvSettings, mAdvData, mAdvCallback);
         } else {
             Log.e(TAG, "BLE Advertisement is unsupported");
 

@@ -44,17 +44,17 @@ public class DeviceInformationService extends GattService {
         mManufacturerNameCharacteristic = new BluetoothGattCharacteristic(MANUFACTURER_NAME_UUID,
                 BluetoothGattCharacteristic.PROPERTY_READ,
                 BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED | BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED_MITM);
-        mManufacturerNameCharacteristic.addDescriptor(buildStringDescriptor(MANUFACTURER_NAME_UUID, MANUFACTURER_NAME));
+        mManufacturerNameCharacteristic.setValue(MANUFACTURER_NAME.getBytes());
 
         mModelNumberCharacteristic = new BluetoothGattCharacteristic(MODEL_NUMBER_UUID,
                 BluetoothGattCharacteristic.PROPERTY_READ,
                 BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED | BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED_MITM);
-        mModelNumberCharacteristic.addDescriptor(buildStringDescriptor(MODEL_NUMBER_UUID, MODEL_NUMBER));
+        mModelNumberCharacteristic.setValue(MODEL_NUMBER.getBytes());
 
         mFirmwareRevisionCharacteristic = new BluetoothGattCharacteristic(FIRMWARE_REVISION_UUID,
                 BluetoothGattCharacteristic.PROPERTY_READ,
                 BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED | BluetoothGattDescriptor.PERMISSION_READ_ENCRYPTED_MITM);
-        mFirmwareRevisionCharacteristic.addDescriptor(buildStringDescriptor(FIRMWARE_REVISION_UUID, FIRMWARE_REVISION));
+        mFirmwareRevisionCharacteristic.setValue(FIRMWARE_REVISION.getBytes());
 
         mDeviceInformationService = new BluetoothGattService(DEVICE_INFORMATION_SERVICE_UUID,
                 BluetoothGattService.SERVICE_TYPE_PRIMARY);
