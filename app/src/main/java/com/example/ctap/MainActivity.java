@@ -22,7 +22,7 @@ import android.util.Log;
 import android.view.WindowManager;
 import android.widget.Toast;
 
-import com.example.ctap.fido.Authenticator;
+import com.example.ctap.fido2.Authenticator;
 
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -165,9 +165,7 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
 
             //final int status = writeCharacteristic(characteristic, offset, value);
             final int status = mFido2Service.writeCharacteristic(characteristic, offset, value);
-            if (responseNeeded) {
-                mGattServer.sendResponse(device, requestId, status, 0, null);
-            }
+            mGattServer.sendResponse(device, requestId, status, 0, null);
         }
 
         @Override
@@ -187,6 +185,14 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
 
             mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS,
                     offset, descriptor.getValue());
+        }
+
+        @Override
+        public void onExecuteWrite(BluetoothDevice device, int requestId,
+                                   boolean execute) {
+            super.onExecuteWrite(device, requestId, execute);
+            mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS,
+                    0, new byte[] {});
         }
 
         @Override
@@ -393,6 +399,9 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
                 == BluetoothGattCharacteristic.PROPERTY_INDICATE;
         for (BluetoothDevice device: mBluetoothDevices) {
             // true for indication (ack) and false for notification (unacklowedged)
+            Log.v(TAG, String.format("Sending to %s (indicate=%b): %s",
+                        device.getAddress(), indicate, Arrays.toString(characteristic.getValue())
+                    ));
             mGattServer.notifyCharacteristicChanged(device, characteristic, indicate);
         }
     }

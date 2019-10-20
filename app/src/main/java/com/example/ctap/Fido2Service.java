@@ -10,19 +10,16 @@ import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
-import com.example.ctap.fido.Authenticator;
+import com.example.ctap.fido2.Authenticator;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Stream;
 
 
 public class Fido2Service extends GattService {
@@ -37,7 +34,8 @@ public class Fido2Service extends GattService {
     private static final UUID FIDO_CONTROL_POINT_LENGTH_UUID = UUID.fromString("F1D0FFF3-DEAA-ECEE-B42F-C9BA7ED623BB"); // read
     private static final UUID FIDO_STATUS_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
 
-    private static final byte[] FIDO_CONTROL_POINT_LENGTH_RESPONSE = new byte[] {0x02, 0x00}; // 512 bytes.
+    private static final byte[] FIDO_CONTROL_POINT_LENGTH_RESPONSE = new byte[] {0x00, 0x5A}; // 512 bytes.
+    //private static final byte[] FIDO_CONTROL_POINT_LENGTH_RESPONSE = new byte[] {0x02, 0x00}; // 512 bytes.
     private static final byte[] FIDO_SERVICE_REVISION_BITFIELD_RESPONSE = new byte[] {0x20};  // FIDO2 Rev1 only.
 
     // https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-client-to-authenticator-protocol-v2.0-id-20180227.html#ble-constants
@@ -111,13 +109,13 @@ public class Fido2Service extends GattService {
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     private int receivedContinuationFragment(byte[] value) {
-        ByteBuffer segmentNoBuffer = ByteBuffer.wrap(Arrays.copyOfRange(value, 0, 1));
-        char segmentNo = segmentNoBuffer.getChar();
+        /*
+        byte segmentNo = value[0];
         if (segmentNo != mPendingDataFragmentsReceived + 1) {
-            Log.e(TAG, String.format("Unexpected continuation fragment %d", segmentNo));
+            Log.e(TAG, String.format("Unexpected continuation fragment %d", (int) segmentNo));
             discardPendingCommand();
             return BluetoothGatt.GATT_FAILURE;
-        }
+        }*/
 
         try {
             return receivedData(Arrays.copyOfRange(value, 1, value.length));
@@ -179,27 +177,52 @@ public class Fido2Service extends GattService {
         // TODO decode MSG commands
         //      https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-client-to-authenticator-protocol-v2.0-id-20180227.html#message-encoding
 
-        mPendingRequest = mAuthenticator.request(mPendingCommand, mPendingData.toByteArray());
+        int responseCode = BluetoothGatt.GATT_SUCCESS;
+        switch (mPendingCommand) {
+            case FIDO_CTAP_MSG: {
+                try {
+                    mPendingRequest = mAuthenticator.request(mPendingData.toByteArray());
+                    byte[] response = mPendingRequest.get();
+                    respond(response);
+
+                    // TODO frame response
+                    //      https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-client-to-authenticator-protocol-v2.0-id-20180227.html#ble-authenticator-to-client
+                    responseCode = BluetoothGatt.GATT_SUCCESS;
+
+                } catch (ExecutionException | InterruptedException | IOException e) {
+                    Log.e(TAG, "Error executing authenticator command", e);
+                    responseCode = BluetoothGatt.GATT_FAILURE;
+
+                }
+                break;
+            }
+
+            default: {
+                Log.i(TAG, "Unhandled message type:" + mPendingCommand);
+                responseCode = BluetoothGatt.GATT_SUCCESS;
+
+            }
+        }
+
         discardPendingCommand();
+        return responseCode;
 
         // TODO asyncify
         // TODO wrap completableFuture in keepalive wrapper:
         //      https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-client-to-authenticator-protocol-v2.0-id-20180227.html#ble-responses
+    }
 
-        try {
-            byte[] response = mPendingRequest.get();
-            mFidoStatus.setValue(response);
-            mDelegate.sendNotificationToDevices(mFidoStatus);
+    private void respond(byte[] response) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(3 + response.length);
+        buffer.put(FIDO_CTAP_MSG);
+        buffer.putShort((short) response.length);
+        buffer.put(response);
+        byte[] outputArray = buffer.array();
 
-            // TODO frame response
-            //      https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-client-to-authenticator-protocol-v2.0-id-20180227.html#ble-authenticator-to-client
-            return BluetoothGatt.GATT_SUCCESS;
-
-        } catch (ExecutionException | InterruptedException e) {
-            Log.e(TAG, "Error executing authenticator command", e);
-            return BluetoothGatt.GATT_FAILURE;
-
-        }
+        mFidoStatus.setValue(outputArray);
+        mDelegate.sendNotificationToDevices(mFidoStatus);
+        Log.i(TAG, String.format("Responding: mFidoStatus(%d)=%s",
+                outputArray.length, Arrays.toString(outputArray)));
     }
 
     private void discardPendingCommand() {
