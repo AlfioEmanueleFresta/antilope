@@ -1,7 +1,5 @@
 package com.example.ctap;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -22,17 +20,26 @@ import android.util.Log;
 import android.view.WindowManager;
 import android.widget.Toast;
 
-import com.example.ctap.fido2.Authenticator;
+import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.ctap.fido2.Authenticator;
+import com.example.ctap.fido2.AuthenticatorDisplay;
+import com.example.ctap.fido2.AuthenticatorMakeCredentialsRequest;
+import com.example.ctap.keystore.AndroidKeyStore;
+import com.example.ctap.ui.CompletableDialog;
+
+import java.security.KeyStoreException;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 
-public class MainActivity extends AppCompatActivity implements GattService.GattServiceDelegate {
+public class MainActivity extends AppCompatActivity
+        implements GattService.GattServiceDelegate, AuthenticatorDisplay {
 
     public MainActivity() {
     }
@@ -40,6 +47,7 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
     private static final String TAG = MainActivity.class.getCanonicalName();
     private static final int REQUEST_ENABLE_BT = 1;
 
+    private AndroidKeyStore mKeyStore;
     private Authenticator mAuthenticator;
     private GattService mFido2Service;
     private GattService mDeviceInformationService;
@@ -281,7 +289,15 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
         // Keep the display on.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        mAuthenticator = new Authenticator(this);
+        try {
+            mKeyStore = new AndroidKeyStore();
+        } catch (KeyStoreException e) {
+            Log.e(TAG, "mKeyStore could not be initialised", e);
+            e.printStackTrace();
+        }
+
+        Log.i(TAG, "mKeyStore was intitialised succesfully.");
+        mAuthenticator = new Authenticator(this, mKeyStore, this);
 
         mFido2Service = new Fido2Service(this, mAuthenticator);
         mDeviceInformationService = new DeviceInformationService();
@@ -430,4 +446,15 @@ public class MainActivity extends AppCompatActivity implements GattService.GattS
         }
     }
 
+    @Override
+    public CompletableFuture<Boolean> confirmMakeCredentials(
+            final AuthenticatorMakeCredentialsRequest.RelyingParty rp,
+            final AuthenticatorMakeCredentialsRequest.User user) {
+        final String message = String.format("%s (%s) would like to create new credentials " +
+                "for user %s (%s)", rp.name, rp.id, user.displayName, user.name);
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        CompletableDialog dialog = new CompletableDialog(future, message, "Make Credentials", "Cancel");
+        dialog.show(this.getSupportFragmentManager(), "make-credentials");
+        return future;
+    }
 }

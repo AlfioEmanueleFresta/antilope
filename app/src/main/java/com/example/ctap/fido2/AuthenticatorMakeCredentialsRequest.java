@@ -16,16 +16,16 @@ public class AuthenticatorMakeCredentialsRequest extends Request {
     @JsonProperty(value = "6") public List<String> extensions;
     @JsonProperty(value = "7") public Map<String, Boolean> options;
 
-    static class RelyingParty {
-        @JsonProperty("id") String id;
-        @JsonProperty("name") String name;
-        @JsonProperty(value = "icon", required = false) String icon;
+    public static class RelyingParty {
+        @JsonProperty("id") public String id;
+        @JsonProperty("name") public String name;
+        @JsonProperty(value = "icon", required = false) public String icon;
     }
 
-    static class User {
-        @JsonProperty("id") byte[] id;
-        @JsonProperty("name") String name;
-        @JsonProperty("displayName") String displayName;
+    public static class User {
+        @JsonProperty("id") public byte[] id;
+        @JsonProperty("name") public String name;
+        @JsonProperty("displayName") public String displayName;
     }
 
     static class CredentialType {

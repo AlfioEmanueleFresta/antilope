@@ -7,7 +7,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 public abstract class Response {
-    public byte fidoStatus;
+    final static byte CTAP2_SUCCESS = 0x00;
+
+    public byte fidoStatus = CTAP2_SUCCESS;
 
     public byte[] serialize() throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
