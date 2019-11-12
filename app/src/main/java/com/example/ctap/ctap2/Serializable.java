@@ -1,26 +1,24 @@
-package com.example.ctap.fido2;
+package com.example.ctap.ctap2;
 
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-public abstract class Response {
-    final static byte CTAP2_SUCCESS = 0x00;
-
-    public byte fidoStatus = CTAP2_SUCCESS;
-
+public abstract class Serializable {
     public byte[] serialize() throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         CBORFactory cborFactory = new CBORFactory();
         CBORGenerator generator = cborFactory.createGenerator(outputStream);
-        outputStream.write(new byte[]{ fidoStatus });
-        serializeCBOR(generator);
+        serializeCBOR(generator, outputStream);
         generator.close();
         return outputStream.toByteArray();
     }
 
-    abstract void serializeCBOR(CBORGenerator cborGenerator) throws IOException;
+    public abstract void serializeCBOR(@NotNull final CBORGenerator gen,
+                                       @NotNull final ByteArrayOutputStream output) throws IOException;
 
 }

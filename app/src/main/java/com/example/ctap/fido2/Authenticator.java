@@ -6,6 +6,8 @@ import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
+import com.example.ctap.ctap2.Request;
+import com.example.ctap.ctap2.Response;
 import com.example.ctap.keystore.GenericKeyStore;
 
 import java.io.ByteArrayOutputStream;
@@ -13,7 +15,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -128,28 +129,29 @@ public class Authenticator {
 
         Log.i(TAG, "User confirmed credentials creation.");
         final String alias = getCredentialAlias(request.rp, request.user);
-        final int algorithm = -36; // TODO negotiate!!
+        final int algorithm = Algorithms.PUBLIC_KEY_ES256; // TODO negotiate!!
         final boolean userRequired = false; // TODO
-        final PublicKey publicKey = mKeyStore.createKeyPair(alias, algorithm, userRequired);
+        final PublicKeyCredentialDescriptor publicKey = mKeyStore.createKeyPair(alias, algorithm, userRequired);
 
         final MessageDigest md = MessageDigest.getInstance("SHA-256");
         md.update(request.rp.id.getBytes());
         final byte[] rpIdHash = md.digest();
-        final byte flags = 0x40 | 0x01 | 0x04; // TODO register, uv, up
         final int signCount = 0;
 
+        final AuthenticatorData authenticatorData = new AuthenticatorData(
+                rpIdHash, true, userRequired, signCount,
+                new CredentialData(AAGUID, request.user.id, publicKey));
+
         final ByteArrayOutputStream payload = new ByteArrayOutputStream();
-        payload.write(new AuthenticatorData(rpIdHash, flags, signCount,
-                new CredentialData(AAGUID, request.user.id, publicKey)).serialize());
+        payload.write(authenticatorData.serialize());
         payload.write(rpIdHash);
 
         final byte[] signature = mKeyStore.sign(alias, payload.toByteArray());
         Log.w(TAG, "Signature: " + Arrays.toString(signature));
 
         return new AuthenticatorMakeCredentialsResponse(
-            new AuthenticatorData(rpIdHash, flags, signCount,
-                new CredentialData(AAGUID, request.user.id, publicKey)),
-            new AttestationStatement("packed", algorithm, signature)
+            authenticatorData,
+            new PackedAttestationStatement(algorithm, signature)
         );
 
     }
@@ -165,8 +167,8 @@ public class Authenticator {
         return response.serialize();
     }
 
-    private String getCredentialAlias(final AuthenticatorMakeCredentialsRequest.RelyingParty rp,
-                                      final AuthenticatorMakeCredentialsRequest.User user) {
+    private String getCredentialAlias(final PublicKeyCredentialRpEntity rp,
+                                      final PublicKeyCredentialUserEntity user) {
         StringBuilder userIdBuilder = new StringBuilder();
         for (byte b: user.id) {
             userIdBuilder.append(String.format("%02X", b));

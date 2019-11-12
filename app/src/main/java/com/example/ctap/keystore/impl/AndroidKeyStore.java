@@ -1,10 +1,12 @@
-package com.example.ctap.keystore;
+package com.example.ctap.keystore.impl;
 
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Log;
 
 import com.example.ctap.fido2.Algorithms;
+import com.example.ctap.fido2.PublicKeyCredentialDescriptor;
+import com.example.ctap.keystore.GenericKeyStore;
 
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
@@ -16,7 +18,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.UnrecoverableEntryException;
@@ -46,28 +47,28 @@ public class AndroidKeyStore implements GenericKeyStore {
     @Override
     public Set<Integer> getSupportedAlgorithms() {
         HashSet<Integer> algorithms = new HashSet<>();
-        algorithms.add(Algorithms.PUBLIC_KEY_ES512);
+        algorithms.add(Algorithms.PUBLIC_KEY_ES256);
         return algorithms;
     }
 
     private KeyGenParameterSpec getKeyGenParameterSpec(final String alias,
                                                        final int algorithm,
                                                        final boolean userRequired) {
-        if (algorithm != Algorithms.PUBLIC_KEY_ES512) {
+        if (algorithm != Algorithms.PUBLIC_KEY_ES256) {
             return null; // TODO fixme
         }
 
         return new KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_SIGN)
-                .setDigests(KeyProperties.DIGEST_SHA512)
+                .setDigests(KeyProperties.DIGEST_SHA256)
                 .setAlgorithmParameterSpec(new ECGenParameterSpec("secp256r1")) // TODO pick best curve
                 .setUserAuthenticationRequired(userRequired)
                 .setUserAuthenticationValidityDurationSeconds(5 * 60) // TODO confirm value is within spec.
                 .build();
     }
 
-    public PublicKey createKeyPair(final String alias,
-                                   final int algorithm,
-                                   final boolean userRequired) {
+    public PublicKeyCredentialDescriptor createKeyPair(final String alias,
+                                                       final int algorithm,
+                                                       final boolean userRequired) {
         final KeyGenParameterSpec spec = getKeyGenParameterSpec(alias, algorithm, userRequired);
 
         try {
@@ -81,7 +82,7 @@ public class AndroidKeyStore implements GenericKeyStore {
         }
 
         final KeyPair pair = kg.generateKeyPair();
-        return pair.getPublic();
+        return (PublicKeyCredentialDescriptor) pair.getPublic();
     }
 
     public byte[] sign(final String alias,
@@ -90,7 +91,7 @@ public class AndroidKeyStore implements GenericKeyStore {
             final PrivateKey privateKey = (PrivateKey)
                     ks.getKey(alias, null);
 
-            Signature signer = Signature.getInstance("SHA512withECDSA");
+            Signature signer = Signature.getInstance("SHA256withECDSA");
             signer.initSign(privateKey);
             signer.update(payload);
             return signer.sign();

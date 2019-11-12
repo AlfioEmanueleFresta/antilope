@@ -1,7 +1,11 @@
 package com.example.ctap.fido2;
 
+import com.example.ctap.ctap2.Response;
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 public class ErrorResponse extends Response {
@@ -12,8 +16,10 @@ public class ErrorResponse extends Response {
         fidoStatus = errorCode;
     }
 
+
     @Override
-    void serializeCBOR(CBORGenerator cborGenerator) throws IOException {
-        // No-op.
+    public void serializeCBOR(@NotNull final CBORGenerator gen,
+                              @NotNull final ByteArrayOutputStream output) {
+        // No payload.
     }
 }

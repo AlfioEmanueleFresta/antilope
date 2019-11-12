@@ -2,13 +2,14 @@ package com.example.ctap.fido2;
 
 import android.util.Pair;
 
+import com.example.ctap.ctap2.Response;
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
 
 
 public class AuthenticatorGetInfoResponse extends Response {
@@ -17,41 +18,41 @@ public class AuthenticatorGetInfoResponse extends Response {
     private byte[] aaguid;
     private Options options;
 
-    public AuthenticatorGetInfoResponse(String[] versions, byte[] aaguid, Options options) {
+    AuthenticatorGetInfoResponse(String[] versions, byte[] aaguid, Options options) {
         this.versions = versions;
         this.aaguid = aaguid;
         this.options = options;
     }
 
     @Override
-    void serializeCBOR(CBORGenerator cborGenerator) throws IOException {
-        cborGenerator.writeStartObject(3);
+    public void serializeCBOR(@NotNull CBORGenerator gen, @NotNull ByteArrayOutputStream output) throws IOException {
+        gen.writeStartObject(3);
 
         // Versions
-        cborGenerator.writeFieldId(0x01);
-        cborGenerator.writeStartArray(versions.length);
+        gen.writeFieldId(0x01);
+        gen.writeStartArray(versions.length);
         for (final String version: versions) {
-            cborGenerator.writeString(version);
+            gen.writeString(version);
         }
-        cborGenerator.writeEndArray();
+        gen.writeEndArray();
 
         // AAGUID
-        cborGenerator.writeFieldId(0x03);
-        cborGenerator.writeBinary(aaguid);
+        gen.writeFieldId(0x03);
+        gen.writeBinary(aaguid);
 
         // Options
-        cborGenerator.writeFieldId(0x04);
-        cborGenerator.writeStartObject(options.size());
+        gen.writeFieldId(0x04);
+        gen.writeStartObject(options.size());
         for (final Pair<String, Boolean> option: options) {
-            cborGenerator.writeBooleanField(option.first, option.second);
+            gen.writeBooleanField(option.first, option.second);
         }
-        cborGenerator.writeEndObject();
+        gen.writeEndObject();
 
-        cborGenerator.writeEndObject();
+        gen.writeEndObject();
     }
 
 
-    public static class Options extends ArrayList<Pair<String, Boolean>> {
+    static class Options extends ArrayList<Pair<String, Boolean>> {
         Options() {
             super();
 

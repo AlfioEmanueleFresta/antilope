@@ -24,8 +24,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.ctap.fido2.Authenticator;
 import com.example.ctap.fido2.AuthenticatorDisplay;
-import com.example.ctap.fido2.AuthenticatorMakeCredentialsRequest;
-import com.example.ctap.keystore.AndroidKeyStore;
+import com.example.ctap.fido2.PublicKeyCredentialRpEntity;
+import com.example.ctap.fido2.PublicKeyCredentialUserEntity;
+import com.example.ctap.keystore.impl.AndroidKeyStore;
 import com.example.ctap.ui.CompletableDialog;
 
 import java.security.KeyStoreException;
@@ -448,8 +449,8 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public CompletableFuture<Boolean> confirmMakeCredentials(
-            final AuthenticatorMakeCredentialsRequest.RelyingParty rp,
-            final AuthenticatorMakeCredentialsRequest.User user) {
+            final PublicKeyCredentialRpEntity rp,
+            final PublicKeyCredentialUserEntity user) {
         final String message = String.format("%s (%s) would like to create new credentials " +
                 "for user %s (%s)", rp.name, rp.id, user.displayName, user.name);
         CompletableFuture<Boolean> future = new CompletableFuture<>();
