@@ -11,6 +11,7 @@ import android.util.Log;
 import androidx.annotation.RequiresApi;
 
 import com.example.ctap.fido2.Authenticator;
+import com.google.common.primitives.Shorts;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,6 +21,8 @@ import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+
+import static com.example.ctap.Utils.byteArrayToHex;
 
 
 public class Fido2Service extends GattService {
@@ -213,16 +216,16 @@ public class Fido2Service extends GattService {
     }
 
     private void respond(byte[] response) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(3 + response.length);
-        buffer.put(FIDO_CTAP_MSG);
-        buffer.putShort((short) response.length);
-        buffer.put(response);
-        byte[] outputArray = buffer.array();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.write(FIDO_CTAP_MSG);
+        out.write(Shorts.toByteArray((short) response.length));
+        out.write(response);
+        byte[] outputArray = out.toByteArray();
 
         mFidoStatus.setValue(outputArray);
         mDelegate.sendNotificationToDevices(mFidoStatus);
         Log.i(TAG, String.format("Responding: mFidoStatus(%d)=%s",
-                outputArray.length, Arrays.toString(outputArray)));
+                outputArray.length, byteArrayToHex(outputArray)));
     }
 
     private void discardPendingCommand() {

@@ -1,8 +1,8 @@
 package com.example.ctap.fido2
 
+import android.util.Log
+import com.example.ctap.Utils.byteArrayToHex
 import com.google.common.primitives.Shorts
-
-import java.io.ByteArrayOutputStream
 import java.io.IOException
 
 
@@ -16,16 +16,22 @@ class CredentialData(var aaguid: ByteArray,
                      var credentialId: ByteArray,
                      var credentialPublicKey: PublicKeyCredentialDescriptor) {
 
+    private val TAG = CredentialData::class.simpleName
+
     @Throws(IOException::class)
     fun serialize(): ByteArray {
-        val output = ByteArrayOutputStream()
+        val credentialIdSize = Shorts.toByteArray(credentialId.size.toShort());
 
-        output.write(aaguid)
-        output.write(Shorts.toByteArray(credentialId.size.toShort()))
-        output.write(credentialId)
-        output.write(credentialPublicKey.serialize());
+        assert(aaguid.size == 16)
+        assert(credentialIdSize.size == 2)
+        Log.d(TAG, "credentialPublicKey=[" + byteArrayToHex(credentialPublicKey.serialize()) + "]")
 
-        return output.toByteArray()
+        return byteArrayOf(
+                *aaguid,
+                *credentialIdSize,
+                *credentialId,
+                *credentialPublicKey.serialize()
+        );
     }
 
 }

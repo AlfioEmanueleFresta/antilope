@@ -5,6 +5,7 @@ import android.security.keystore.KeyProperties;
 import android.util.Log;
 
 import com.example.ctap.fido2.Algorithms;
+import com.example.ctap.fido2.EllipticCurvePublicKey;
 import com.example.ctap.fido2.PublicKeyCredentialDescriptor;
 import com.example.ctap.keystore.GenericKeyStore;
 
@@ -22,11 +23,13 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
+import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.util.HashSet;
 import java.util.Set;
 
 public class AndroidKeyStore implements GenericKeyStore {
+    private static final String TAG = AndroidKeyStore.class.getCanonicalName();
 
     private KeyStore ks;
     private KeyPairGenerator kg;
@@ -72,7 +75,7 @@ public class AndroidKeyStore implements GenericKeyStore {
         final KeyGenParameterSpec spec = getKeyGenParameterSpec(alias, algorithm, userRequired);
 
         try {
-            Log.i("AndroidKeyStore", "Spec=" + spec.toString());
+            Log.i(TAG, "Spec=" + spec.toString());
             kg.initialize(spec);
 
         } catch (InvalidAlgorithmParameterException e) {
@@ -82,7 +85,7 @@ public class AndroidKeyStore implements GenericKeyStore {
         }
 
         final KeyPair pair = kg.generateKeyPair();
-        return (PublicKeyCredentialDescriptor) pair.getPublic();
+        return new EllipticCurvePublicKey(algorithm, (ECPublicKey) pair.getPublic());
     }
 
     public byte[] sign(final String alias,

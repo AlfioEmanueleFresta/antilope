@@ -38,6 +38,8 @@ import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import static com.example.ctap.Utils.byteArrayToHex;
+
 
 public class MainActivity extends AppCompatActivity
         implements GattService.GattServiceDelegate, AuthenticatorDisplay {
@@ -416,8 +418,9 @@ public class MainActivity extends AppCompatActivity
                 == BluetoothGattCharacteristic.PROPERTY_INDICATE;
         for (BluetoothDevice device: mBluetoothDevices) {
             // true for indication (ack) and false for notification (unacklowedged)
-            Log.v(TAG, String.format("Sending to %s (indicate=%b): %s",
-                        device.getAddress(), indicate, Arrays.toString(characteristic.getValue())
+            Log.v(TAG, String.format("Sending to %s (indicate=%b): [%s]",
+                        device.getAddress(), indicate,
+                        byteArrayToHex(characteristic.getValue())
                     ));
             mGattServer.notifyCharacteristicChanged(device, characteristic, indicate);
         }

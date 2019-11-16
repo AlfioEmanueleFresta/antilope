@@ -3,10 +3,8 @@ package com.example.ctap.fido2
 import com.example.ctap.ctap2.Serializable
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator
 import com.google.common.primitives.Ints
-
 import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.nio.ByteBuffer
 import kotlin.experimental.or
 
 /**
@@ -18,7 +16,7 @@ class AuthenticatorData(var rpIdHash: ByteArray,
                         var userPresent: Boolean,
                         var userVerified: Boolean,
                         var signCount: Int,
-                        var credentialData: CredentialData?) : Serializable() {
+                        var credentialData: CredentialData) : Serializable() {
 
     @Throws(IOException::class)
     override fun serialize(): ByteArray {
@@ -30,14 +28,19 @@ class AuthenticatorData(var rpIdHash: ByteArray,
                                             0b01000000 else 0).toByte() // Bit 6
 
         val blob = ByteArrayOutputStream()
+
+        assert(rpIdHash.size == 4)
         blob.write(rpIdHash)
-        blob.write(flags.toInt())
+
+        assert(byteArrayOf(flags).size == 1)
+        blob.write(byteArrayOf(flags))
+
+        assert(Ints.toByteArray(signCount).size == 4)
         blob.write(Ints.toByteArray(signCount))
 
-        if (credentialData != null) {
-            blob.write(credentialData!!.serialize())
-            // TODO this only works for ECDSA
-        }
+        blob.write(credentialData.serialize())
+        // TODO this only works for ECDSA
+
         return blob.toByteArray()
     }
 

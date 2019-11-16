@@ -20,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import static com.example.ctap.Utils.byteArrayToHex;
+
 
 public class Authenticator {
     private static final String TAG = Authenticator.class.getCanonicalName();
@@ -139,15 +141,18 @@ public class Authenticator {
         final int signCount = 0;
 
         final AuthenticatorData authenticatorData = new AuthenticatorData(
-                rpIdHash, true, userRequired, signCount,
+                rpIdHash, true, true, signCount,
                 new CredentialData(AAGUID, request.user.id, publicKey));
 
+        Log.d(TAG, "clientDataHash=[" + byteArrayToHex(request.clientDataHash) + "]");
         final ByteArrayOutputStream payload = new ByteArrayOutputStream();
         payload.write(authenticatorData.serialize());
-        payload.write(rpIdHash);
+        payload.write(request.clientDataHash);
+
+        Log.d(TAG, "payload=[" + byteArrayToHex(payload.toByteArray()) + "]");
 
         final byte[] signature = mKeyStore.sign(alias, payload.toByteArray());
-        Log.w(TAG, "Signature: " + Arrays.toString(signature));
+        Log.w(TAG, "signature=[" + byteArrayToHex(signature) + "]");
 
         return new AuthenticatorMakeCredentialsResponse(
             authenticatorData,

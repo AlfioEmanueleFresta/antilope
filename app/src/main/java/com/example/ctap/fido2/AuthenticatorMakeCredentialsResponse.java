@@ -33,7 +33,7 @@ public class AuthenticatorMakeCredentialsResponse extends Response {
         gen.writeBinary(authenticatorData.serialize());
 
         gen.writeFieldId(3); // Attestation Statement
-        out.write(attestationStatement.serialize());
+        attestationStatement.serializeCBOR(gen, out);
 
         gen.writeEndObject();
     }
