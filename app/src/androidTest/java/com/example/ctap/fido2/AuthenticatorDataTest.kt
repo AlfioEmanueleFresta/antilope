@@ -1,0 +1,37 @@
+package com.example.ctap.fido2
+
+import org.junit.Assert
+import org.junit.Test
+
+class AuthenticatorDataTest {
+
+    @Test
+    fun serializeNoCredentialData() {
+        val rpIdHash = arrayOf(
+                0x11, 0x94, 0x22, 0x8D, 0xA8, 0xFD, 0xBD, 0xEE, 0xFD, 0x26, 0x1B, 0xD7,
+                0xB6, 0x59, 0x5C, 0xFD, 0x70, 0xA5, 0x0D, 0x70, 0xC6, 0x40, 0x7B, 0xCF,
+                0x01, 0x3D, 0xE9, 0x6D, 0x4E, 0xFB, 0x17, 0xDE)
+                .map { x -> x.toByte() }.toByteArray()
+
+        val data = AuthenticatorData(
+                rpIdHash = rpIdHash,
+                userPresent = true,
+                userVerified = false,
+                signCount = 42
+        )
+
+        Assert.assertArrayEquals(
+                data.serialize(),
+                arrayOf(
+                        // SHA256 hash of kTestRelyingPartyId
+                        0x11, 0x94, 0x22, 0x8D, 0xA8, 0xFD, 0xBD, 0xEE, 0xFD, 0x26, 0x1B, 0xD7,
+                        0xB6, 0x59, 0x5C, 0xFD, 0x70, 0xA5, 0x0D, 0x70, 0xC6, 0x40, 0x7B, 0xCF,
+                        0x01, 0x3D, 0xE9, 0x6D, 0x4E, 0xFB, 0x17, 0xDE,
+                        // Flags (TUP bit set)
+                        0x01,
+                        // Counter
+                        0x00, 0x00, 0x00, 0x2A
+                ).map { x -> x.toByte() }.toByteArray()
+        )
+    }
+}

@@ -28,7 +28,7 @@ data class EllipticCurvePublicKey(
         gen.writeBinary(normalize(publicKey.w.affineX.toByteArray()))
         gen.writeFieldId(-3) // y (y-coordinate)
         gen.writeBinary(normalize(publicKey.w.affineY.toByteArray()))
-        gen.writeEndObject()
+        // gen.writeEndObject() TODO removed for some reason.
     }
 
     private fun normalize(input: ByteArray): ByteArray {

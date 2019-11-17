@@ -1,0 +1,43 @@
+package com.example.ctap.fido2
+
+import org.junit.Assert
+import org.junit.Test
+import java.security.interfaces.ECPublicKey
+
+import com.nhaarman.mockitokotlin2.mock;
+
+class EllipticCurvePublicKeyTest {
+    @Test
+    fun serialize() {
+        val mockPublicKey = mock<ECPublicKey>()
+
+        val key = EllipticCurvePublicKey(Algorithms.PUBLIC_KEY_ES256, mockPublicKey);
+
+        Assert.assertArrayEquals(key.serialize(), arrayOf(
+                // Map(5)
+                0xA5,
+                // kty: EC key type
+                0x01, 0x02,
+                // alg: EC256 signature algorithm
+                0x03, 0x26,
+                // crv: P-256 curve
+                0x20, 0x01,
+                // x-coordinate
+                0x21,
+                // Bytes(32)
+                0x58, 0x20,
+                // Byte array content
+                0xE8, 0x76, 0x25, 0x89, 0x6E, 0xE4, 0xE4, 0x6D, 0xC0, 0x32, 0x76, 0x6E,
+                0x80, 0x87, 0x96, 0x2F, 0x36, 0xDF, 0x9D, 0xFE, 0x8B, 0x56, 0x7F, 0x37,
+                0x63, 0x01, 0x5B, 0x19, 0x90, 0xA6, 0x0E, 0x14,
+                // y-coordinate
+                0x22,
+                // Bytes(32)
+                0x58, 0x20,
+                // Byte array content
+                0x27, 0xDE, 0x61, 0x2D, 0x66, 0x41, 0x8B, 0xDA, 0x19, 0x50, 0x58, 0x1E,
+                0xBC, 0x5C, 0x8C, 0x1D, 0xAD, 0x71, 0x0C, 0xB1, 0x4C, 0x22, 0xF8, 0xC9,
+                0x70, 0x45, 0xF4, 0x61, 0x2F, 0xB2, 0x0C, 0x91
+        ).map { x -> x.toByte() }.toByteArray())
+    }
+}

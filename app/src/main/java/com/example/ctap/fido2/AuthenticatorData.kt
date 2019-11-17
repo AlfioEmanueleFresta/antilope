@@ -1,11 +1,12 @@
 package com.example.ctap.fido2
 
+import android.util.Log
+import com.example.ctap.Utils.byteArrayToHex
 import com.example.ctap.ctap2.Serializable
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator
 import com.google.common.primitives.Ints
 import java.io.ByteArrayOutputStream
 import java.io.IOException
-import kotlin.experimental.or
 
 /**
  * The authenticator data structure encodes contextual bindings made by the authenticator.
@@ -16,32 +17,36 @@ class AuthenticatorData(var rpIdHash: ByteArray,
                         var userPresent: Boolean,
                         var userVerified: Boolean,
                         var signCount: Int,
-                        var credentialData: CredentialData) : Serializable() {
+                        var credentialData: CredentialData? = null) : Serializable() {
+
+    private val TAG = Authenticator::class.qualifiedName;
 
     @Throws(IOException::class)
     override fun serialize(): ByteArray {
-
-        var flags: Byte = 0x00
-        flags = flags or (if (userPresent)  0b00000001 else 0).toByte() // Bit 0
-        flags = flags or (if (userVerified) 0b00000100 else 0).toByte() // Bit 2
-        flags = flags or (if (credentialData != null)
-                                            0b01000000 else 0).toByte() // Bit 6
-
-        val blob = ByteArrayOutputStream()
+        var flags = 0x00
+        flags += if (userPresent)    0b00000001 else 0     // Bit 0
+        flags += if (userVerified)   0b00000100 else 0     // Bit 2
+        flags += if (credentialData != null)
+                                     0b01000000 else 0     // Bit 6
+        Log.d(TAG, "AuthenticatorData.flags=$flags");
 
         assert(rpIdHash.size == 4)
-        blob.write(rpIdHash)
-
-        assert(byteArrayOf(flags).size == 1)
-        blob.write(byteArrayOf(flags))
-
         assert(Ints.toByteArray(signCount).size == 4)
-        blob.write(Ints.toByteArray(signCount))
 
-        blob.write(credentialData.serialize())
         // TODO this only works for ECDSA
+        val authData = byteArrayOf(
+                *rpIdHash,
+                flags.toByte(),
+                *Ints.toByteArray(signCount),
+                *(if (credentialData != null)
+                    credentialData!!.serialize()
+                        else
+                    byteArrayOf()
+                )
+        );
+        Log.d(TAG, "AuthenticatorData.serialize()=" + byteArrayToHex(authData));
+        return authData;
 
-        return blob.toByteArray()
     }
 
     @Throws(IOException::class)

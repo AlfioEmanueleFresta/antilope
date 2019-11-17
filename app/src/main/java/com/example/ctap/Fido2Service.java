@@ -225,7 +225,8 @@ public class Fido2Service extends GattService {
         mFidoStatus.setValue(outputArray);
         mDelegate.sendNotificationToDevices(mFidoStatus);
         Log.i(TAG, String.format("Responding: mFidoStatus(%d)=%s",
-                outputArray.length, byteArrayToHex(outputArray)));
+                mFidoStatus.getValue().length,
+                byteArrayToHex(mFidoStatus.getValue())));
     }
 
     private void discardPendingCommand() {

@@ -455,7 +455,7 @@ public class MainActivity extends AppCompatActivity
             final PublicKeyCredentialRpEntity rp,
             final PublicKeyCredentialUserEntity user) {
         final String message = String.format("%s (%s) would like to create new credentials " +
-                "for user %s (%s)", rp.name, rp.id, user.displayName, user.name);
+                "for user %s (%s)", rp.getName(), rp.getId(), user.getDisplayName(), user.getName());
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         CompletableDialog dialog = new CompletableDialog(future, message, "Make Credentials", "Cancel");
         dialog.show(this.getSupportFragmentManager(), "make-credentials");

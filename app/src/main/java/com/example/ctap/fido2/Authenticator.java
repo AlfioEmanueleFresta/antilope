@@ -20,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import kotlin.text.Charsets;
+
 import static com.example.ctap.Utils.byteArrayToHex;
 
 
@@ -88,17 +90,9 @@ public class Authenticator {
     }
 
     private Response handleMakeCredentialRequest(final AuthenticatorMakeCredentialsRequest request) throws NoSuchAlgorithmException, IOException {
-        Log.i(TAG, "makeCredential");
-        Log.i(TAG, "request.rp.id=" + request.rp.id);
-        Log.i(TAG, "request.rp.name=" + request.rp.name);
-        Log.i(TAG, "request.rp.icon=" + request.rp.icon);
-        Log.i(TAG, "request.user.id=" + Arrays.toString(request.user.id));
-        Log.i(TAG, "request.user.name=" + request.user.name);
-        Log.i(TAG, "request.user.displayName=" + request.user.displayName);
-
-        for (AuthenticatorMakeCredentialsRequest.CredentialType type:
-                request.credentialTypes) {
-            Log.i(TAG, "Supported cipher: algorithm=" + type.algorithm + ", type=" + type.type);
+        Log.i(TAG, "makeCredential request=" + request);
+        for (CredentialType type: request.getCredentialTypes()) {
+            Log.i(TAG, "Supported cipher: " + type);
         }
 
         // TODO 1. check exclusions list, fail w/ CTAP2_ERR_CREDENTIAL_EXCLUDED
@@ -106,7 +100,7 @@ public class Authenticator {
         // 2. Check supported algorithms
         if (mKeyStore.getSupportedAlgorithms().stream()
                 .noneMatch(supportedAlgorithm ->
-                        request.credentialTypes.stream().map(type -> type.algorithm)
+                        request.getCredentialTypes().stream().map(type -> type.getAlgorithm())
                                 .collect(Collectors.toList()).contains(supportedAlgorithm))) {
             // No supported algorithms
             return new ErrorResponse(ErrorResponse.CTAP2_ERR_UNSUPPORTED_ALGORITHM);
@@ -118,7 +112,8 @@ public class Authenticator {
         // TODO 7. Ensure pinAuth is not part of the request.
 
         try {
-            final boolean confirmed = mDisplay.confirmMakeCredentials(request.rp, request.user).get();
+            final boolean confirmed =
+                    mDisplay.confirmMakeCredentials(request.getRp(), request.getUser()).get();
             if (!confirmed) {
                 throw new IllegalStateException(); // TODO use user exception
             }
@@ -130,24 +125,25 @@ public class Authenticator {
         }
 
         Log.i(TAG, "User confirmed credentials creation.");
-        final String alias = getCredentialAlias(request.rp, request.user);
+        final String alias = getCredentialAlias(request.getRp(), request.getUser());
         final int algorithm = Algorithms.PUBLIC_KEY_ES256; // TODO negotiate!!
         final boolean userRequired = false; // TODO
         final PublicKeyCredentialDescriptor publicKey = mKeyStore.createKeyPair(alias, algorithm, userRequired);
 
         final MessageDigest md = MessageDigest.getInstance("SHA-256");
-        md.update(request.rp.id.getBytes());
+        md.update(request.getRp().getId().getBytes(Charsets.UTF_8));
         final byte[] rpIdHash = md.digest();
+
         final int signCount = 0;
 
         final AuthenticatorData authenticatorData = new AuthenticatorData(
                 rpIdHash, true, true, signCount,
-                new CredentialData(AAGUID, request.user.id, publicKey));
+                new CredentialData(AAGUID, request.getUser().getId(), publicKey));
 
-        Log.d(TAG, "clientDataHash=[" + byteArrayToHex(request.clientDataHash) + "]");
+        Log.d(TAG, "clientDataHash=[" + byteArrayToHex(request.getClientDataHash()) + "]");
         final ByteArrayOutputStream payload = new ByteArrayOutputStream();
         payload.write(authenticatorData.serialize());
-        payload.write(request.clientDataHash);
+        payload.write(request.getClientDataHash());
 
         Log.d(TAG, "payload=[" + byteArrayToHex(payload.toByteArray()) + "]");
 
@@ -175,10 +171,10 @@ public class Authenticator {
     private String getCredentialAlias(final PublicKeyCredentialRpEntity rp,
                                       final PublicKeyCredentialUserEntity user) {
         StringBuilder userIdBuilder = new StringBuilder();
-        for (byte b: user.id) {
+        for (byte b: user.getId()) {
             userIdBuilder.append(String.format("%02X", b));
         }
-        return String.format("%s::%s", rp.id, userIdBuilder.toString());
+        return String.format("%s::%s", rp.getId(), userIdBuilder.toString());
     }
 
 }
