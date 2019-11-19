@@ -13,6 +13,7 @@ internal class ErrorResponse (errorCode: Byte)
     }
 
     companion object {
+        internal const val CTAP1_ERR_INVALID_COMMAND: Byte = 0x01
         internal const val CTAP2_ERR_UNSUPPORTED_ALGORITHM: Byte = 0x26
         internal const val CTAP2_ERR_OPERATION_DENIED: Byte = 0x27
     }

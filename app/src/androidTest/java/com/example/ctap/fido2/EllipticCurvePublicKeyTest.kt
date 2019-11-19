@@ -4,13 +4,10 @@ import org.junit.Assert
 import org.junit.Test
 import java.security.interfaces.ECPublicKey
 
-import com.nhaarman.mockitokotlin2.mock;
 
 class EllipticCurvePublicKeyTest {
     @Test
     fun serialize() {
-        val mockPublicKey = mock<ECPublicKey>()
-
         val key = EllipticCurvePublicKey(Algorithms.PUBLIC_KEY_ES256, mockPublicKey);
 
         Assert.assertArrayEquals(key.serialize(), arrayOf(
