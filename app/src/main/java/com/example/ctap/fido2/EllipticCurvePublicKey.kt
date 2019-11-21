@@ -3,7 +3,6 @@ package com.example.ctap.fido2
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator
 import java.io.ByteArrayOutputStream
 import java.security.interfaces.ECPublicKey
-import java.util.*
 
 
 /**
@@ -12,7 +11,7 @@ import java.util.*
 data class EllipticCurvePublicKey(
         val algorithm: Int,
         val publicKey: ECPublicKey):
-        PublicKeyCredentialDescriptor() {
+        CredentialPublicKey() {
 
     override fun serializeCBOR(gen: CBORGenerator, output: ByteArrayOutputStream) {
         // https://tools.ietf.org/html/rfc8152#section-7
@@ -32,13 +31,10 @@ data class EllipticCurvePublicKey(
     }
 
     private fun normalize(input: ByteArray): ByteArray {
-        val result = ArrayList<Byte>()
         if (input[0] == 0x00.toByte()) {
-            result.addAll(input.slice(1 until input.size))
-        } else {
-            result.addAll(input.toList())
+            return input.takeLast(input.size - 1).toByteArray();
         }
-        return result.toByteArray()
+        return input;
     }
 
 

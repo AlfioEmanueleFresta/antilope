@@ -35,6 +35,7 @@ class Authenticator(private val mKeyStore: GenericKeyStore,
         return when (cmd) {
             AUTHENTICATOR_GET_INFO -> getInfo(payload)
             AUTHENTICATOR_MAKE_CREDENTIAL -> makeCredential(payload, token)
+            AUTHENTICATOR_GET_ASSERTION -> getAssertion(payload, token)
             else -> invalidCmd()
         }
     }
@@ -49,6 +50,13 @@ class Authenticator(private val mKeyStore: GenericKeyStore,
         val request = Request.parse(payload, AuthenticatorMakeCredentialsRequest::class.java)
                 as AuthenticatorMakeCredentialsRequest
         val response = handleMakeCredentialRequest(request, token)
+        return response.serialize()
+    }
+
+    private fun getAssertion(payload: ByteArray, token: FidoToken): ByteArray {
+        val request = Request.parse(payload, AuthenticatorGetAssertionRequest::class.java)
+            as AuthenticatorGetAssertionRequest
+        val response = handleGetAssertionRequest(request, token)
         return response.serialize()
     }
 
@@ -116,6 +124,31 @@ class Authenticator(private val mKeyStore: GenericKeyStore,
         )
     }
 
+    private fun handleGetAssertionRequest(request: AuthenticatorGetAssertionRequest,
+                                          token: FidoToken): Response {
+        Log.i(TAG, "getAssertion request=$request");
+
+        val md = MessageDigest.getInstance("SHA-256")
+        md.update(request.rpId.toByteArray());
+        val digest = md.digest()
+
+        val authenticatorData = AuthenticatorData(
+                rpIdHash = digest,
+                userPresent =  true, userVerified = false, signCount = 0)
+        val payload = byteArrayOf(*authenticatorData.serialize(),
+                                            *request.clientDataHash)
+
+        val alias = "barfoo"; // TODO
+        val signature = mKeyStore.sign(alias, payload)
+
+        val credential = request.allowList!!.get(0)
+        val response = AuthenticatorGetAssertionResponse(credential, authenticatorData,
+                signature)
+
+        return response
+        // todo check uv and up options
+    }
+
     private suspend fun waitForUserConfirmation(rp: PublicKeyCredentialRpEntity,
                                                 user: PublicKeyCredentialUserEntity,
                                                 token: FidoToken) : Boolean {
@@ -149,6 +182,7 @@ class Authenticator(private val mKeyStore: GenericKeyStore,
 
     private fun getCredentialAlias(rp: PublicKeyCredentialRpEntity,
                                    user: PublicKeyCredentialUserEntity): String {
+        return "barfoo";
         val userIdBuilder = StringBuilder()
         for (b in user.id) {
             userIdBuilder.append(String.format("%02X", b))

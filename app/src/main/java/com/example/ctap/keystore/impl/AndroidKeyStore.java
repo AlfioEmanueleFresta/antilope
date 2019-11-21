@@ -6,7 +6,7 @@ import android.util.Log;
 
 import com.example.ctap.fido2.Algorithms;
 import com.example.ctap.fido2.EllipticCurvePublicKey;
-import com.example.ctap.fido2.PublicKeyCredentialDescriptor;
+import com.example.ctap.fido2.CredentialPublicKey;
 import com.example.ctap.keystore.GenericKeyStore;
 
 import java.io.IOException;
@@ -69,9 +69,9 @@ public class AndroidKeyStore implements GenericKeyStore {
                 .build();
     }
 
-    public PublicKeyCredentialDescriptor createKeyPair(final String alias,
-                                                       final int algorithm,
-                                                       final boolean userRequired) {
+    public CredentialPublicKey createKeyPair(final String alias,
+                                             final int algorithm,
+                                             final boolean userRequired) {
         final KeyGenParameterSpec spec = getKeyGenParameterSpec(alias, algorithm, userRequired);
 
         try {

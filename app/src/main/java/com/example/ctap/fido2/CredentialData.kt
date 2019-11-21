@@ -14,7 +14,7 @@ import java.io.IOException
  */
 class CredentialData(var aaguid: ByteArray,
                      var credentialId: ByteArray,
-                     var credentialPublicKey: PublicKeyCredentialDescriptor) {
+                     var credentialPublicKey: CredentialPublicKey) {
 
     private val TAG = CredentialData::class.simpleName
 

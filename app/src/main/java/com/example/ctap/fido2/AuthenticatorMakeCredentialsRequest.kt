@@ -20,7 +20,7 @@ internal data class AuthenticatorMakeCredentialsRequest (
         var credentialTypes: List<CredentialType>,
 
         @JsonProperty(value="5")
-        var excludeList: List<String>?,
+        var excludeList: List<PublicKeyCredentialDescriptor>?,
 
         @JsonProperty(value="6")
         var extensions: List<String>?,
